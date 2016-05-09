@@ -466,6 +466,17 @@ class SearchKeys(list):
     def handle_status(self, key, value):
         pass
 
+class Store(object):
+    def __init__(self, gpg):
+        self.gpg = gpg
+        self.data = ''
+
+    def handle_status(self, key, value):
+        pass
+
+    def __str__(self):
+        return self.data.decode(self.gpg.encoding, self.gpg.decode_errors)
+
 class Crypt(Verify):
     "Handle status messages for --encrypt and --decrypt"
     def __init__(self, gpg):
@@ -615,6 +626,7 @@ class GPG(object):
         'search': SearchKeys,
         'sign': Sign,
         'verify': Verify,
+        'store': Store,
     }
 
     "Encapsulate access to the gpg executable"
@@ -1186,7 +1198,8 @@ class GPG(object):
     #
     def encrypt_file(self, file, recipients, sign=None,
             always_trust=False, passphrase=None,
-            armor=True, output=None, symmetric=False):
+            armor=True, output=None, symmetric=False,
+            no_literal=False, disable_mdc=False, compress_level=-1):
         "Encrypt the message read from the file-like object 'file'"
         args = ['--encrypt']
         if symmetric:
@@ -1214,6 +1227,13 @@ class GPG(object):
             args.extend(['--sign', '--default-key', shell_quote(sign)])
         if always_trust:
             args.append("--always-trust")
+        if no_literal:
+            args.append("--no-literal")
+        if disable_mdc:
+            args.append("--disable-mdc")
+        if compress_level != -1:
+            if isinstance(compress_level, (int, long)):
+                args.extend(["--compress-level", shell_quote(str(compress_level))])
         result = self.result_map['crypt'](self)
         self._handle_io(args, file, result, passphrase=passphrase, binary=True)
         logger.debug('encrypt result: %r', result.data)
@@ -1263,6 +1283,50 @@ class GPG(object):
         data = _make_binary_stream(data, self.encoding)
         result = self.encrypt_file(data, recipients, **kwargs)
         data.close()
+        return result
+
+    def enarmor(self, message):
+        data = _make_binary_stream(message, self.encoding)
+        result = self.enarmor_file(data)
+        data.close()
+        return result
+
+    def enarmor_file(self, file):
+        args = ['--enarmor']
+        result = self.result_map['store'](self)
+        self._handle_io(args, file, result, binary=True)
+        logger.debug('enarmor result: %r', result.data)
+        return result
+
+    def dearmor(self, message):
+        data = _make_binary_stream(message, self.encoding)
+        result = self.dearmor_file(data)
+        data.close()
+        return result
+
+    def dearmor_file(self, file):
+        args = ['--dearmor']
+        result = self.result_map['store'](self)
+        self._handle_io(args, file, result, binary=True)
+        logger.debug('dearmor result: %r', result.data)
+        return result
+
+    def store(self, message, **kwargs):
+        data = _make_binary_stream(message, self.encoding)
+        result = self.store_file(data, **kwargs)
+        data.close()
+        return result
+
+    def store_file(self, file, armor=True, compress_level=-1):
+        args = ['--store']
+        if armor:   # create ascii-armored output - False for binary output
+            args.append('--armor')
+        if compress_level != -1:
+            if isinstance(compress_level, (int, long)):
+                args.extend(["--compress-level", shell_quote(str(compress_level))])
+        result = self.result_map['store'](self)
+        self._handle_io(args, file, result, binary=True)
+        logger.debug('store result: %r', result.data)
         return result
 
     def decrypt(self, message, **kwargs):
