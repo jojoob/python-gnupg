@@ -1,8 +1,7 @@
-.. image:: https://travis-ci.org/vsajip/python-gnupg.svg
-   :target: https://travis-ci.org/vsajip/python-gnupg
+python-gnupg Fork
+=================
 
-.. image:: https://coveralls.io/repos/vsajip/python-gnupg/badge.svg
-   :target: https://coveralls.io/github/vsajip/python-gnupg
+This is a fork of the python-gnupg module from https://bitbucket.org/vinay.sajip/python-gnupg/
 
 
 What is it?
