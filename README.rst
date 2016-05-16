@@ -3,6 +3,8 @@ python-gnupg Fork
 
 This is a fork of the python-gnupg module from https://bitbucket.org/vinay.sajip/python-gnupg/
 
+This version is extended by store, enarmor and dearmor functions and no-literal, disable-mdc and compress-level parameters for the encrypt function.
+
 
 What is it?
 ===========
